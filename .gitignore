@@ -1,0 +1,6 @@
+poetry.lock
+dist/
+build/
+
+# pytest files
+.coverage

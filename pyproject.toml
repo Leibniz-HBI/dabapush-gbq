@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "dabapush-gbq"
+version = "0.1.0"
+description = "A Google BigQuery plug-in for dabapush"
+authors = ["Philipp Kessling <p.kessling@leibniz-hbi.de>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+dabapush = "0.4.0-alpha"
+google-cloud-bigquery = "^3.27.0"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+isort = "^5.13.2"
+pre-commit = "^4.0.1"
+pytest-cov = "^6.0.0"
+pylint = "^3.3.1"
+pytest-html = "^4.1.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.pytest.ini_options]
+addopts = "--cov-report html:tests/coverage --cov=dabapush_gbq --capture=sys"
+
+[tool.pylint.messages_control]
+disable=["invalid-name"]
