@@ -8,8 +8,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-dabapush = "0.4.0-alpha"
+dabapush = "0.4.0a2"
 google-cloud-bigquery = "^3.27.0"
+tqdm = "*"
+ujson = "*"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -19,11 +21,17 @@ pre-commit = "^4.0.1"
 pytest-cov = "^6.0.0"
 pylint = "^3.3.1"
 pytest-html = "^4.1.1"
+black = "^24.10.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.poetry.scripts]
+"schemagen" = "dabapush_gbq.schema_generator:main"
+
+[tool.poetry.plugins.dabapush_writers]
+"GBQ" = "dabapush_gbq.dabapush_gbq:GBQWriterConfiguration"
 
 [tool.pytest.ini_options]
 addopts = "--cov-report html:tests/coverage --cov=dabapush_gbq --capture=sys"
