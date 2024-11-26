@@ -8,8 +8,9 @@ the following fields:
 - auth_file: The path to the authentication file.
 - schema_file: The path to the schema file.
 """
+
 import io
-from typing import override, Optional
+from typing import Optional, override
 
 import ujson
 from dabapush.Configuration.WriterConfiguration import WriterConfiguration
@@ -19,6 +20,25 @@ from google.cloud.exceptions import BadRequest
 from loguru import logger
 
 # pylint: disable=I1101,R
+
+
+def render_bad_request_error_data_context(
+    bad_request_error: BadRequest, data_buffer: io.BytesIO, offset: int = 100
+):
+    """Render the error context for a BadRequest error."""
+    error_message = str(bad_request_error)
+    position = data_buffer.tell()
+    data_buffer.seek(-20, io.SEEK_CUR)
+    data_context = data_buffer.read(offset)
+
+    logger.error(
+        f"""Error in row starting at position {position}: {error_message}
+
+Data context:
+->{data_context.decode('utf8')}<-
+ {'^-'.rjust(22)}
+"""
+    )
 
 
 class GBQWriterConfiguration(WriterConfiguration):
@@ -32,12 +52,13 @@ class GBQWriterConfiguration(WriterConfiguration):
             environment variable GOOGLE_APPLICATION_CREDENTIALS must be set.
         schema_file (str): The path to the schema file. Defaults to None.
     """
+
     yaml_tag = "!dabapush_gbq:GBQWriterConfiguration"
 
     def __init__(
         self,
         name: Optional[str],
-        id: Optional[str] = None,
+        id: Optional[str] = None,  # pylint: disable=W0622
         chunk_size: Optional[int] = 2000,
         project_name: Optional[str] = None,
         dataset_name: Optional[str] = None,
@@ -89,7 +110,11 @@ class GBQWriter(Writer):
         except Exception as exception:  # pylint: disable=W0703
             if allow_create:
                 return self.bigquery_client.create_table(
-                    f"{self.config.project_name}.{self.config.dataset_name}.{self.config.table_name}"
+                    "{}.{}.{}".format(  # pylint: disable=C0209
+                        self.config.project_name,
+                        self.config.dataset_name,
+                        self.config.table_name,
+                    )
                 )
             else:
                 raise exception
@@ -98,10 +123,11 @@ class GBQWriter(Writer):
         """Persist the records to the destination."""
         table = self._get_table()
         write_buffer = io.BytesIO(initial_bytes=b"")
-        for record in self.buffer:
-            if len(record.payload) == 0:
-                continue
-            write_buffer.write(str.encode(ujson.dumps(record.payload) + "\n"))
+        write_buffer.write(
+            "\n".join(
+                (ujson.dumps(_.payload) for _ in self.buffer if _.payload)
+            ).encode()
+        )
 
         result = self.bigquery_client.load_table_from_file(
             write_buffer,
@@ -112,9 +138,10 @@ class GBQWriter(Writer):
         try:
             result.result()
         except BadRequest as bad_request_error:
-            logger.warning(
-                f"Omitting {self.config.chunk_size} rows because {bad_request_error}."
-            )
-            return
+            error: BadRequest = bad_request_error
+            render_bad_request_error_data_context(error, write_buffer)
+
+            render_bad_request_error_data_context(bad_request_error, write_buffer)
+
         write_buffer.close()
         self.buffer = []
