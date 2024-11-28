@@ -8,8 +8,9 @@ the following fields:
 - auth_file: The path to the authentication file.
 - schema_file: The path to the schema file.
 """
+
 import io
-from typing import override, Optional
+from typing import Optional, override
 
 import ujson
 from dabapush.Configuration.WriterConfiguration import WriterConfiguration
@@ -32,12 +33,13 @@ class GBQWriterConfiguration(WriterConfiguration):
             environment variable GOOGLE_APPLICATION_CREDENTIALS must be set.
         schema_file (str): The path to the schema file. Defaults to None.
     """
+
     yaml_tag = "!dabapush_gbq:GBQWriterConfiguration"
 
     def __init__(
         self,
         name: Optional[str],
-        id: Optional[str] = None,
+        id: Optional[str] = None,  # pylint: disable=W0622
         chunk_size: Optional[int] = 2000,
         project_name: Optional[str] = None,
         dataset_name: Optional[str] = None,
@@ -89,7 +91,9 @@ class GBQWriter(Writer):
         except Exception as exception:  # pylint: disable=W0703
             if allow_create:
                 return self.bigquery_client.create_table(
-                    f"{self.config.project_name}.{self.config.dataset_name}.{self.config.table_name}"
+                    f"{self.config.project_name}."
+                    f"{self.config.dataset_name}."
+                    f"{self.config.table_name}"
                 )
             else:
                 raise exception
@@ -117,4 +121,3 @@ class GBQWriter(Writer):
             )
             return
         write_buffer.close()
-        self.buffer = []
