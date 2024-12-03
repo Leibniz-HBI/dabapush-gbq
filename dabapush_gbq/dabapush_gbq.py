@@ -125,7 +125,11 @@ class GBQWriter(Writer):
         write_buffer = io.BytesIO(initial_bytes=b"")
         write_buffer.write(
             "\n".join(
-                (ujson.dumps(_.payload) for _ in self.buffer if _.payload)
+                (
+                    ujson.dumps(_.payload, ensure_ascii=False)
+                    for _ in self.buffer
+                    if _.payload
+                )
             ).encode()
         )
 
