@@ -2,6 +2,6 @@
 
 from .dabapush_gbq import GBQWriterConfiguration
 
-__version__ = "0.1.1a1"
+__version__ = "0.1.1a3"
 
 __all__ = ["__version__", "GBQWriterConfiguration"]
