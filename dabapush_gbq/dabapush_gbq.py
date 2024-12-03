@@ -110,11 +110,9 @@ class GBQWriter(Writer):
         except Exception as exception:  # pylint: disable=W0703
             if allow_create:
                 return self.bigquery_client.create_table(
-                    "{}.{}.{}".format(  # pylint: disable=C0209
-                        self.config.project_name,
-                        self.config.dataset_name,
-                        self.config.table_name,
-                    )
+                    f"{self.config.project_name}."
+                    f"{self.config.dataset_name}."
+                    f"{self.config.table_name}"
                 )
             else:
                 raise exception
@@ -144,4 +142,3 @@ class GBQWriter(Writer):
             render_bad_request_error_data_context(bad_request_error, write_buffer)
 
         write_buffer.close()
-        self.buffer = []
