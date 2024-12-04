@@ -2,6 +2,7 @@
 
 import io
 import os
+from pathlib import Path
 
 import pytest
 import ujson
@@ -137,7 +138,7 @@ def test_big_query_scratch_location(
 
     client = mock_client(load_table_from_file=load_table_from_file)
     configuration.scratch_location = (
-        location if location == "memory" else tmp_path / location
+        location if location == "memory" else str(tmp_path / location)
     )
 
     with monkeypatch.context() as m:
@@ -145,9 +146,8 @@ def test_big_query_scratch_location(
         writer = configuration.get_instance()
         writer.write(data)
         if configuration.scratch_location != "memory":
-            assert configuration.scratch_location.exists()
-            assert configuration.scratch_location.is_file()
-            assert (configuration.scratch_location.read_text()) == ujson.dumps(
-                data[0].payload, ensure_ascii=False
-            )
+            assert not Path(
+                configuration.scratch_location
+            ).exists()  # should be cleaned up already
+
         assert called is True

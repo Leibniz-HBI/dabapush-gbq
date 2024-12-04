@@ -11,7 +11,7 @@ the following fields:
 
 import io
 from pathlib import Path
-from typing import Literal, Optional, Union, override
+from typing import Optional, override
 
 import ujson
 from dabapush.Configuration.WriterConfiguration import WriterConfiguration
@@ -66,7 +66,7 @@ class GBQWriterConfiguration(WriterConfiguration):
         table_name: Optional[str] = None,
         auth_file: Optional[str] = None,
         schema_file: Optional[str] = None,
-        scratch_location: Optional[Union[Literal["memory"], Path]] = None,
+        scratch_location: Optional[str] = None,
     ):
         super().__init__(name=name, id=id, chunk_size=chunk_size)
         self.project_name = project_name
@@ -123,10 +123,15 @@ class GBQWriter(Writer):
     def persist(self):
         """Persist the records to the destination."""
         table = self._get_table()
+        scratch_location = (
+            Path(self.config.scratch_location)
+            if self.config.scratch_location != "memory"
+            else self.config.scratch_location
+        )
         write_buffer = (
             io.BytesIO(initial_bytes=b"")
-            if self.config.scratch_location == "memory"
-            else self.config.scratch_location.open("wb")
+            if scratch_location == "memory"
+            else scratch_location.open("wb")
         )
         write_buffer.write(
             "\n".join(
@@ -153,3 +158,5 @@ class GBQWriter(Writer):
             render_bad_request_error_data_context(bad_request_error, write_buffer)
 
         write_buffer.close()
+        if scratch_location != "memory":
+            scratch_location.unlink()
