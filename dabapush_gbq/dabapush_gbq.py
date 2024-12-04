@@ -10,6 +10,7 @@ the following fields:
 """
 
 import io
+from pathlib import Path
 from typing import Optional, override
 
 import ujson
@@ -65,6 +66,7 @@ class GBQWriterConfiguration(WriterConfiguration):
         table_name: Optional[str] = None,
         auth_file: Optional[str] = None,
         schema_file: Optional[str] = None,
+        scratch_location: Optional[str] = None,
     ):
         super().__init__(name=name, id=id, chunk_size=chunk_size)
         self.project_name = project_name
@@ -72,6 +74,7 @@ class GBQWriterConfiguration(WriterConfiguration):
         self.table_name = table_name
         self.auth_file = auth_file
         self.schema_file = schema_file
+        self.scratch_location = scratch_location or "memory"
 
     @override
     def get_instance(self):  # pylint: disable=W0221
@@ -120,7 +123,16 @@ class GBQWriter(Writer):
     def persist(self):
         """Persist the records to the destination."""
         table = self._get_table()
-        write_buffer = io.BytesIO(initial_bytes=b"")
+        scratch_location = (
+            Path(self.config.scratch_location)
+            if self.config.scratch_location != "memory"
+            else self.config.scratch_location
+        )
+        write_buffer = (
+            io.BytesIO(initial_bytes=b"")
+            if scratch_location == "memory"
+            else scratch_location.open("wb")
+        )
         write_buffer.write(
             "\n".join(
                 (
@@ -146,3 +158,5 @@ class GBQWriter(Writer):
             render_bad_request_error_data_context(bad_request_error, write_buffer)
 
         write_buffer.close()
+        if scratch_location != "memory":
+            scratch_location.unlink()

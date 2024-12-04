@@ -2,6 +2,7 @@
 
 import io
 import os
+from pathlib import Path
 
 import pytest
 import ujson
@@ -10,7 +11,7 @@ from google.api_core.exceptions import BadRequest
 
 from dabapush_gbq import GBQWriterConfiguration
 
-# pylint: disable=W0613, W0621, C0116
+# pylint: disable=W0613, W0621, C0116, R0913, R0917, I1101
 
 
 @pytest.fixture()
@@ -120,3 +121,33 @@ def test_big_query_writer_emits_utf8(monkeypatch, configuration, data, mock_clie
         writer.write(data)
         for expected, actual in zip(data, result):
             assert ujson.loads(actual) == expected.payload
+
+
+@pytest.mark.parametrize("location", ["memory", ".scratch.jsonl"])
+def test_big_query_scratch_location(
+    location, tmp_path, monkeypatch, configuration, data, mock_client
+):
+    """Should write data to BigQuery."""
+    called = False
+
+    def load_table_from_file(buffer, *args, **kwargs):
+        nonlocal called
+        called = True
+        assert isinstance(buffer, io.BufferedIOBase)
+        return type("Response", (object,), {"result": lambda *args, **kwargs: None})
+
+    client = mock_client(load_table_from_file=load_table_from_file)
+    configuration.scratch_location = (
+        location if location == "memory" else str(tmp_path / location)
+    )
+
+    with monkeypatch.context() as m:
+        m.setattr("google.cloud.bigquery.Client", client)
+        writer = configuration.get_instance()
+        writer.write(data)
+        if configuration.scratch_location != "memory":
+            assert not Path(
+                configuration.scratch_location
+            ).exists()  # should be cleaned up already
+
+        assert called is True
