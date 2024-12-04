@@ -10,7 +10,8 @@ the following fields:
 """
 
 import io
-from typing import Optional, override
+from pathlib import Path
+from typing import Literal, Optional, Union, override
 
 import ujson
 from dabapush.Configuration.WriterConfiguration import WriterConfiguration
@@ -65,6 +66,7 @@ class GBQWriterConfiguration(WriterConfiguration):
         table_name: Optional[str] = None,
         auth_file: Optional[str] = None,
         schema_file: Optional[str] = None,
+        scratch_location: Optional[Union[Literal["memory"], Path]] = None,
     ):
         super().__init__(name=name, id=id, chunk_size=chunk_size)
         self.project_name = project_name
@@ -72,6 +74,7 @@ class GBQWriterConfiguration(WriterConfiguration):
         self.table_name = table_name
         self.auth_file = auth_file
         self.schema_file = schema_file
+        self.scratch_location = scratch_location or "memory"
 
     @override
     def get_instance(self):  # pylint: disable=W0221
@@ -120,7 +123,11 @@ class GBQWriter(Writer):
     def persist(self):
         """Persist the records to the destination."""
         table = self._get_table()
-        write_buffer = io.BytesIO(initial_bytes=b"")
+        write_buffer = (
+            io.BytesIO(initial_bytes=b"")
+            if self.config.scratch_location == "memory"
+            else self.config.scratch_location.open("wb")
+        )
         write_buffer.write(
             "\n".join(
                 (
