@@ -131,17 +131,17 @@ class GBQWriter(Writer):
         write_buffer = (
             io.BytesIO(initial_bytes=b"")
             if scratch_location == "memory"
-            else scratch_location.open("wb")
+            else scratch_location.open("wb+")
         )
-        write_buffer.write(
-            "\n".join(
-                (
-                    ujson.dumps(_.payload, ensure_ascii=False)
-                    for _ in self.buffer
-                    if _.payload
-                )
-            ).encode()
-        )
+        logger.debug(f"Writing {len(self.buffer)} records to write-out buffer.")
+
+        def write(rec_stream):
+            for record in rec_stream:
+                payload = record.payload
+                if payload:
+                    yield ujson.dumps(payload, ensure_ascii=False)
+
+        write_buffer.write("\n".join(write(self.buffer)).encode())
 
         if scratch_location != "memory":
             logger.debug(f"Closing {scratch_location} and reopening in read mode.")
@@ -160,8 +160,8 @@ class GBQWriter(Writer):
             error: BadRequest = bad_request_error
             render_bad_request_error_data_context(error, write_buffer)
 
-            render_bad_request_error_data_context(bad_request_error, write_buffer)
-
         write_buffer.close()
         if scratch_location != "memory":
             scratch_location.unlink()
+
+        logger.debug("Persisted records. Buffer closed.")
