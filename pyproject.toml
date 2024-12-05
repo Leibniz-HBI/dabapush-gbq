@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dabapush-gbq"
-version = "0.1.1a4"
+version = "0.1.1a5"
 description = "A Google BigQuery plug-in for dabapush"
 authors = ["Philipp Kessling <p.kessling@leibniz-hbi.de>"]
 license = "MIT"
