@@ -143,6 +143,11 @@ class GBQWriter(Writer):
             ).encode()
         )
 
+        if scratch_location != "memory":
+            logger.debug(f"Closing {scratch_location} and reopening in read mode.")
+            write_buffer.close()
+            write_buffer = scratch_location.open("rb")
+
         result = self.bigquery_client.load_table_from_file(
             write_buffer,
             job_config=self.job_config,
